@@ -12,7 +12,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { TransactionDialog } from "./TransactionDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
   id: string;
@@ -36,48 +48,78 @@ interface TransactionsListProps {
 export const TransactionsList = ({ limit }: TransactionsListProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const fetchTransactions = async () => {
+    try {
+      let query = supabase
+        .from('transactions')
+        .select(`
+          id,
+          date,
+          description,
+          amount,
+          type,
+          payment_method,
+          status,
+          is_installment,
+          current_installment,
+          installment_count,
+          categories (name, color),
+          credit_cards (name)
+        `)
+        .order('date', { ascending: false });
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar transações:', error);
+      } else {
+        setTransactions(data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar transações:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        let query = supabase
-          .from('transactions')
-          .select(`
-            id,
-            date,
-            description,
-            amount,
-            type,
-            payment_method,
-            status,
-            is_installment,
-            current_installment,
-            installment_count,
-            categories (name, color),
-            credit_cards (name)
-          `)
-          .order('date', { ascending: false });
-
-        if (limit) {
-          query = query.limit(limit);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Erro ao buscar transações:', error);
-        } else {
-          setTransactions(data || []);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar transações:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTransactions();
   }, [limit]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Transação excluída",
+        description: "A transação foi excluída com sucesso.",
+      });
+
+      fetchTransactions();
+    } catch (error) {
+      console.error('Erro ao deletar transação:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a transação.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingTransactionId(null);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -192,10 +234,18 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setEditingTransaction(transaction)}
+                  >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setDeletingTransactionId(transaction.id)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -204,6 +254,38 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
           ))}
         </TableBody>
       </Table>
+
+      {/* Dialog de Edição */}
+      <TransactionDialog
+        open={!!editingTransaction}
+        onOpenChange={(open) => !open && setEditingTransaction(null)}
+        onSuccess={() => {
+          setEditingTransaction(null);
+          fetchTransactions();
+        }}
+        editTransaction={editingTransaction}
+      />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!deletingTransactionId} onOpenChange={(open) => !open && setDeletingTransactionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deletingTransactionId && handleDelete(deletingTransactionId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

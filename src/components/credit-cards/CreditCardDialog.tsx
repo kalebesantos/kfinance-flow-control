@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,9 +34,10 @@ interface CreditCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  editCard?: any;
 }
 
-export const CreditCardDialog = ({ open, onOpenChange, onSuccess }: CreditCardDialogProps) => {
+export const CreditCardDialog = ({ open, onOpenChange, onSuccess, editCard }: CreditCardDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -50,41 +51,76 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess }: CreditCardDi
     },
   });
 
+  useEffect(() => {
+    if (editCard) {
+      form.reset({
+        name: editCard.name,
+        limit_total: editCard.limit_total.toString(),
+        closing_day: editCard.closing_day?.toString() || '',
+        due_day: editCard.due_day?.toString() || ''
+      });
+    } else {
+      form.reset({
+        name: "",
+        limit_total: "",
+        closing_day: "",
+        due_day: "",
+      });
+    }
+  }, [editCard, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
 
-      const { error } = await supabase
-        .from('credit_cards')
-        .insert({
-          name: values.name,
-          limit_total: parseFloat(values.limit_total.replace(',', '.')),
-          closing_day: parseInt(values.closing_day),
-          due_day: parseInt(values.due_day),
-        });
+      if (editCard) {
+        const { error } = await supabase
+          .from('credit_cards')
+          .update({
+            name: values.name,
+            limit_total: parseFloat(values.limit_total.replace(',', '.')),
+            closing_day: parseInt(values.closing_day),
+            due_day: parseInt(values.due_day),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editCard.id);
 
-      if (error) {
+        if (error) {
+          throw error;
+        }
+
         toast({
-          title: "Erro ao cadastrar cartão",
-          description: error.message,
-          variant: "destructive",
+          title: "Cartão atualizado!",
+          description: "Cartão de crédito atualizado com sucesso.",
         });
-        return;
-      }
+      } else {
+        const { error } = await supabase
+          .from('credit_cards')
+          .insert({
+            name: values.name,
+            limit_total: parseFloat(values.limit_total.replace(',', '.')),
+            closing_day: parseInt(values.closing_day),
+            due_day: parseInt(values.due_day),
+          });
 
-      toast({
-        title: "Cartão cadastrado!",
-        description: "Cartão de crédito cadastrado com sucesso.",
-      });
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Cartão cadastrado!",
+          description: "Cartão de crédito cadastrado com sucesso.",
+        });
+      }
 
       form.reset();
       onOpenChange(false);
       onSuccess();
-    } catch (error) {
-      console.error('Erro ao cadastrar cartão:', error);
+    } catch (error: any) {
+      console.error('Erro ao processar cartão:', error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro inesperado.",
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     } finally {
@@ -96,9 +132,9 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess }: CreditCardDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Novo Cartão de Crédito</DialogTitle>
+          <DialogTitle>{editCard ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito'}</DialogTitle>
           <DialogDescription>
-            Cadastre um novo cartão de crédito para controlar seus gastos.
+            {editCard ? 'Edite os dados do cartão de crédito.' : 'Cadastre um novo cartão de crédito para controlar seus gastos.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -193,7 +229,7 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess }: CreditCardDi
                 disabled={loading}
                 className="bg-gradient-primary hover:opacity-90"
               >
-                {loading ? "Salvando..." : "Salvar Cartão"}
+                {loading ? "Salvando..." : (editCard ? "Atualizar" : "Salvar Cartão")}
               </Button>
             </DialogFooter>
           </form>

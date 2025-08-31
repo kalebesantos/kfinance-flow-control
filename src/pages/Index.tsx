@@ -111,6 +111,10 @@ const Index = () => {
       <TransactionDialog 
         open={isTransactionDialogOpen} 
         onOpenChange={setIsTransactionDialogOpen}
+        onSuccess={() => {
+          setIsTransactionDialogOpen(false);
+          window.location.reload();
+        }}
       />
     </div>
   );

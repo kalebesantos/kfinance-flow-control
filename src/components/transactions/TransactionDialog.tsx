@@ -64,9 +64,11 @@ interface CreditCard {
 interface TransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+  editTransaction?: any;
 }
 
-export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps) => {
+export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransaction }: TransactionDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
@@ -100,6 +102,40 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
       fetchCreditCards();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (editTransaction) {
+      form.reset({
+        date: format(new Date(editTransaction.date), 'yyyy-MM-dd'),
+        description: editTransaction.description,
+        category_id: editTransaction.category_id || '',
+        amount: editTransaction.amount.toString(),
+        type: editTransaction.type,
+        payment_method: editTransaction.payment_method,
+        status: editTransaction.status || 'paid',
+        is_installment: editTransaction.is_installment || false,
+        installment_count: editTransaction.installment_count?.toString() || "1",
+        credit_card_id: editTransaction.credit_card_id || '',
+        due_date: editTransaction.due_date ? format(new Date(editTransaction.due_date), 'yyyy-MM-dd') : '',
+        notes: editTransaction.notes || ''
+      });
+    } else {
+      form.reset({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        description: "",
+        category_id: "",
+        amount: "",
+        type: "expense",
+        payment_method: "cash",
+        status: "paid",
+        is_installment: false,
+        installment_count: "1",
+        credit_card_id: "",
+        due_date: "",
+        notes: "",
+      });
+    }
+  }, [editTransaction, form]);
 
   const fetchCategories = async () => {
     try {
@@ -138,7 +174,37 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
       const amount = parseFloat(values.amount.replace(',', '.'));
       const installmentCount = values.is_installment ? parseInt(values.installment_count || "1") : 1;
 
-      if (values.is_installment && installmentCount > 1) {
+      if (editTransaction) {
+        // Atualizar transação existente
+        const { error } = await supabase
+          .from('transactions')
+          .update({
+            date: values.date,
+            description: values.description,
+            category_id: values.category_id,
+            amount: amount,
+            type: values.type,
+            payment_method: values.payment_method,
+            status: values.status,
+            is_installment: values.is_installment,
+            installment_count: installmentCount,
+            current_installment: editTransaction.current_installment || 1,
+            credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
+            due_date: values.due_date || null,
+            notes: values.notes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editTransaction.id);
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Lançamento atualizado!",
+          description: "Transação atualizada com sucesso.",
+        });
+      } else if (values.is_installment && installmentCount > 1) {
         // Criar transações parceladas
         const installmentAmount = amount / installmentCount;
         const baseDate = new Date(values.date);
@@ -156,7 +222,7 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
               amount: installmentAmount,
               type: values.type,
               payment_method: values.payment_method,
-              status: i === 0 ? values.status : 'pending', // Primeira parcela com status selecionado, demais pendentes
+              status: i === 0 ? values.status : 'pending',
               is_installment: true,
               installment_count: installmentCount,
               current_installment: i + 1,
@@ -169,6 +235,11 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
             throw error;
           }
         }
+
+        toast({
+          title: "Lançamento cadastrado!",
+          description: `${installmentCount} parcelas criadas com sucesso.`,
+        });
       } else {
         // Criar transação única
         const { error } = await supabase
@@ -192,24 +263,20 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
         if (error) {
           throw error;
         }
-      }
 
-      toast({
-        title: "Lançamento cadastrado!",
-        description: values.is_installment && installmentCount > 1 
-          ? `${installmentCount} parcelas criadas com sucesso.`
-          : "Transação cadastrada com sucesso.",
-      });
+        toast({
+          title: "Lançamento cadastrado!",
+          description: "Transação cadastrada com sucesso.",
+        });
+      }
 
       form.reset();
       onOpenChange(false);
-      
-      // Recarregar a página para atualizar os dados
-      window.location.reload();
+      onSuccess();
     } catch (error: any) {
-      console.error('Erro ao cadastrar lançamento:', error);
+      console.error('Erro ao processar lançamento:', error);
       toast({
-        title: "Erro ao cadastrar",
+        title: "Erro ao processar",
         description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
@@ -233,9 +300,9 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Lançamento</DialogTitle>
+          <DialogTitle>{editTransaction ? 'Editar Lançamento' : 'Novo Lançamento'}</DialogTitle>
           <DialogDescription>
-            Cadastre uma nova entrada ou saída financeira.
+            {editTransaction ? 'Edite os dados da transação.' : 'Cadastre uma nova entrada ou saída financeira.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -430,51 +497,53 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
               />
             )}
 
-            {/* Parcelamento */}
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="is_installment"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Parcelado</FormLabel>
-                      <div className="text-sm text-muted-foreground">
-                        Dividir o valor em várias parcelas
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              {watchIsInstallment && (
+            {/* Parcelamento (apenas para criação) */}
+            {!editTransaction && (
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="installment_count"
+                  name="is_installment"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número de Parcelas</FormLabel>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Parcelado</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Dividir o valor em várias parcelas
+                        </div>
+                      </div>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          min="2"
-                          max="60"
-                          placeholder="Ex: 12"
-                          {...field} 
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
-            </div>
+
+                {watchIsInstallment && (
+                  <FormField
+                    control={form.control}
+                    name="installment_count"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número de Parcelas</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="2"
+                            max="60"
+                            placeholder="Ex: 12"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Data de Vencimento */}
             {watchType === 'expense' && (
@@ -526,7 +595,7 @@ export const TransactionDialog = ({ open, onOpenChange }: TransactionDialogProps
                 disabled={loading}
                 className="bg-gradient-primary hover:opacity-90"
               >
-                {loading ? "Salvando..." : "Salvar Lançamento"}
+                {loading ? "Salvando..." : (editTransaction ? "Atualizar" : "Cadastrar")}
               </Button>
             </DialogFooter>
           </form>

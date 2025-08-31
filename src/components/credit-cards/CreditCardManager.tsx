@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
-import { Plus, CreditCard, Calendar, DollarSign, Percent } from "lucide-react";
+import { Plus, CreditCard, Calendar, DollarSign, Edit, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { CreditCardDialog } from "./CreditCardDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreditCard {
   id: string;
@@ -22,6 +33,9 @@ export const CreditCardManager = () => {
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCreditCards();
@@ -66,6 +80,33 @@ export const CreditCardManager = () => {
       console.error('Erro ao buscar cartões:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('credit_cards')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cartão excluído",
+        description: "O cartão foi excluído com sucesso.",
+      });
+
+      fetchCreditCards();
+    } catch (error) {
+      console.error('Erro ao deletar cartão:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o cartão.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingCardId(null);
     }
   };
 
@@ -141,7 +182,25 @@ export const CreditCardManager = () => {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{card.name}</CardTitle>
-                    <CreditCard className="w-6 h-6 text-primary" />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingCard(card);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingCardId(card.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -215,9 +274,37 @@ export const CreditCardManager = () => {
       {/* Credit Card Dialog */}
       <CreditCardDialog 
         open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen}
-        onSuccess={fetchCreditCards}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setEditingCard(null);
+        }}
+        onSuccess={() => {
+          fetchCreditCards();
+          setEditingCard(null);
+        }}
+        editCard={editingCard}
       />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!deletingCardId} onOpenChange={(open) => !open && setDeletingCardId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este cartão? Todas as transações associadas permanecerão, mas sem vínculo com o cartão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deletingCardId && handleDelete(deletingCardId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
