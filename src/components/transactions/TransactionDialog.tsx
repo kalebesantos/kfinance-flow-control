@@ -34,6 +34,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Plus } from "lucide-react";
 
 const formSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
