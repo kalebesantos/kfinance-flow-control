@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +37,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
+import { parseCurrency } from "@/utils/currency";
+import { mockData } from "@/store/mockData";
 
 const formSchema = z.object({
   date: z.string().min(1, "Data é obrigatória"),
@@ -141,83 +144,60 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
 
   const fetchCategories = async () => {
     try {
-      // Por enquanto, usar categorias locais mockadas
-      // Quando a autenticação estiver implementada, buscará do banco
-      const mockCategories = [
-        // Categorias de despesa
-        { id: '1', name: 'Alimentação', color: '#ef4444' },
-        { id: '2', name: 'Transporte', color: '#f59e0b' },
-        { id: '3', name: 'Moradia', color: '#8b5cf6' },
-        { id: '4', name: 'Saúde', color: '#10b981' },
-        { id: '5', name: 'Educação', color: '#3b82f6' },
-        { id: '6', name: 'Lazer', color: '#ec4899' },
-        { id: '7', name: 'Compras', color: '#f97316' },
-        { id: '8', name: 'Outros', color: '#6b7280' },
-        // Categorias de receita  
-        { id: '9', name: 'Salário', color: '#10b981' },
-        { id: '10', name: 'Freelance', color: '#3b82f6' },
-        { id: '11', name: 'Investimentos', color: '#8b5cf6' },
-        { id: '12', name: 'Outros', color: '#6b7280' },
-      ];
+      // Buscar categorias mockadas
+      const allCategories = mockData.getCategories();
+      const filteredCategories = watchType 
+        ? allCategories.filter(c => c.type === watchType)
+        : allCategories;
       
-      setCategories(mockCategories);
+      setCategories(filteredCategories);
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);
     }
   };
-
+  
   const fetchCreditCards = async () => {
     try {
-      const { data } = await supabase
-        .from('credit_cards')
-        .select('id, name')
-        .order('name');
-      
-      if (data) {
-        setCreditCards(data);
-      }
+      // Buscar cartões mockados
+      const allCards = mockData.getCreditCards();
+      setCreditCards(allCards);
     } catch (error) {
       console.error('Erro ao buscar cartões:', error);
     }
   };
 
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
 
-      const amount = parseFloat(values.amount.replace(',', '.'));
+      const amount = parseCurrency(values.amount);
       const installmentCount = values.is_installment ? parseInt(values.installment_count || "1") : 1;
 
       if (editTransaction) {
         // Atualizar transação existente
-        const { error } = await supabase
-          .from('transactions')
-          .update({
-            date: values.date,
-            description: values.description,
-            category_id: values.category_id,
-            amount: amount,
-            type: values.type,
-            payment_method: values.payment_method,
-            status: values.status,
-            is_installment: values.is_installment,
-            installment_count: installmentCount,
-            current_installment: editTransaction.current_installment || 1,
-            credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-            due_date: values.due_date || null,
-            notes: values.notes || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editTransaction.id);
-
-        if (error) {
-          throw error;
-        }
-
-        toast({
-          title: "Lançamento atualizado!",
-          description: "Transação atualizada com sucesso.",
+        const updated = mockData.updateTransaction(editTransaction.id, {
+          date: values.date,
+          description: values.description,
+          category_id: values.category_id,
+          amount: amount,
+          type: values.type,
+          payment_method: values.payment_method,
+          status: values.status,
+          is_installment: values.is_installment,
+          installment_count: installmentCount,
+          current_installment: editTransaction.current_installment || 1,
+          credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
+          due_date: values.due_date || null,
+          notes: values.notes || null,
         });
+
+        if (updated) {
+          toast({
+            title: "Lançamento atualizado!",
+            description: "Transação atualizada com sucesso.",
+          });
+        }
       } else if (values.is_installment && installmentCount > 1) {
         // Criar transações parceladas
         const installmentAmount = amount / installmentCount;
@@ -227,80 +207,48 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
           const installmentDate = new Date(baseDate);
           installmentDate.setMonth(installmentDate.getMonth() + i);
 
-          // TODO: Quando autenticação estiver implementada, descomentar o código abaixo
-          // const { data: { user } } = await supabase.auth.getUser();
-          // if (!user) {
-          //   throw new Error('Usuário não autenticado');
-          // }
-
-          // const { error } = await supabase
-          //   .from('transactions')
-          //   .insert({
-          //     date: format(installmentDate, 'yyyy-MM-dd'),
-          //     description: `${values.description} (${i + 1}/${installmentCount})`,
-          //     category_id: values.category_id,
-          //     amount: installmentAmount,
-          //     type: values.type,
-          //     payment_method: values.payment_method,
-          //     status: i === 0 ? values.status : 'pending',
-          //     is_installment: true,
-          //     installment_count: installmentCount,
-          //     current_installment: i + 1,
-          //     credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-          //     due_date: values.due_date || null,
-          //     notes: values.notes || null,
-          //     user_id: user.id
-          //   });
-
-          // if (error) {
-          //   throw error;
-          // }
-
-          // Por enquanto, apenas simular sucesso
-          console.log(`Parcela ${i + 1}/${installmentCount} criada localmente`);
+          mockData.addTransaction({
+            date: format(installmentDate, 'yyyy-MM-dd'),
+            description: `${values.description} (${i + 1}/${installmentCount})`,
+            category_id: values.category_id,
+            amount: installmentAmount,
+            type: values.type,
+            payment_method: values.payment_method,
+            status: i === 0 ? values.status : 'pending',
+            is_installment: true,
+            installment_count: installmentCount,
+            current_installment: i + 1,
+            credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
+            due_date: values.due_date || null,
+            notes: values.notes || null,
+          });
         }
 
         toast({
           title: "Lançamento cadastrado!",
-          description: `${installmentCount} parcelas criadas com sucesso (localmente).`,
+          description: `${installmentCount} parcelas criadas com sucesso.`,
         });
       } else {
         // Criar transação única
-        // TODO: Quando autenticação estiver implementada, descomentar o código abaixo
-        // const { data: { user } } = await supabase.auth.getUser();
-        // if (!user) {
-        //   throw new Error('Usuário não autenticado');
-        // }
-
-        // const { error } = await supabase
-        //   .from('transactions')
-        //   .insert({
-        //     date: values.date,
-        //     description: values.description,
-        //     category_id: values.category_id,
-        //     amount: amount,
-        //     type: values.type,
-        //     payment_method: values.payment_method,
-        //     status: values.status,
-        //     is_installment: false,
-        //     installment_count: 1,
-        //     current_installment: 1,
-        //     credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-        //     due_date: values.due_date || null,
-        //     notes: values.notes || null,
-        //     user_id: user.id
-        //   });
-
-        // if (error) {
-        //   throw error;
-        // }
-
-        // Por enquanto, apenas simular sucesso
-        console.log('Transação criada localmente:', values);
+        mockData.addTransaction({
+          date: values.date,
+          description: values.description,
+          category_id: values.category_id,
+          amount: amount,
+          type: values.type,
+          payment_method: values.payment_method,
+          status: values.status,
+          is_installment: false,
+          installment_count: 1,
+          current_installment: 1,
+          credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
+          due_date: values.due_date || null,
+          notes: values.notes || null,
+        });
 
         toast({
           title: "Lançamento cadastrado!",
-          description: "Transação cadastrada com sucesso (localmente).",
+          description: "Transação cadastrada com sucesso.",
         });
       }
 
@@ -363,13 +311,11 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormLabel>Valor</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0,00" 
-                        step="0.01"
-                        {...field} 
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />

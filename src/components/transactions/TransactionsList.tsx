@@ -25,6 +25,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionDialog } from "./TransactionDialog";
 import { useToast } from "@/hooks/use-toast";
+import { mockData } from "@/store/mockData";
+import { formatCurrency } from "@/utils/currency";
 
 interface Transaction {
   id: string;
@@ -56,75 +58,32 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
     try {
       setLoading(true);
       
-      // TODO: Quando autenticação estiver implementada, descomentar o código abaixo
-      // let query = supabase
-      //   .from('transactions')
-      //   .select(`
-      //     id,
-      //     date,
-      //     description,
-      //     amount,
-      //     type,
-      //     payment_method,
-      //     status,
-      //     is_installment,
-      //     current_installment,
-      //     installment_count,
-      //     categories (name, color),
-      //     credit_cards (name)
-      //   `)
-      //   .order('date', { ascending: false });
-
-      // if (limit) {
-      //   query = query.limit(limit);
-      // }
-
-      // const { data, error } = await query;
-
-      // if (error) {
-      //   console.error('Erro ao buscar transações:', error);
-      // } else {
-      //   const typedData = (data || []).map(item => ({
-      //     ...item,
-      //     type: item.type as 'income' | 'expense',
-      //     status: item.status as 'paid' | 'pending'
-      //   }));
-      //   setTransactions(typedData);
-      // }
-
-      // Por enquanto, usar dados mockados
-      const mockTransactions: Transaction[] = [
-        {
-          id: '1',
-          date: format(new Date(), 'yyyy-MM-dd'),
-          description: 'Supermercado',
-          amount: 250.00,
-          type: 'expense',
-          payment_method: 'credit_card',
-          status: 'paid',
-          is_installment: false,
-          current_installment: 1,
-          installment_count: 1,
-          categories: { name: 'Alimentação', color: '#ef4444' },
-          credit_cards: { name: 'Cartão Exemplo' }
-        },
-        {
-          id: '2',
-          date: format(new Date(), 'yyyy-MM-dd'),
-          description: 'Salário',
-          amount: 5000.00,
-          type: 'income',
-          payment_method: 'transfer',
-          status: 'paid',
-          is_installment: false,
-          current_installment: 1,
-          installment_count: 1,
-          categories: { name: 'Salário', color: '#10b981' },
-          credit_cards: null
-        }
-      ];
+      // Buscar dados mockados
+      const allTransactions = mockData.getTransactions();
+      const allCategories = mockData.getCategories();
+      const allCards = mockData.getCreditCards();
       
-      setTransactions(limit ? mockTransactions.slice(0, limit) : mockTransactions);
+      // Enriquecer transações com dados relacionados
+      const enrichedTransactions = allTransactions.map(t => {
+        const category = allCategories.find(c => c.id === t.category_id);
+        const card = allCards.find(c => c.id === t.credit_card_id);
+        
+        return {
+          ...t,
+          categories: category ? { name: category.name, color: category.color } : null,
+          credit_cards: card ? { name: card.name } : null
+        };
+      });
+      
+      // Ordenar por data (mais recente primeiro)
+      enrichedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      // Aplicar limite se especificado
+      const finalTransactions = limit 
+        ? enrichedTransactions.slice(0, limit) 
+        : enrichedTransactions;
+      
+      setTransactions(finalTransactions);
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
     } finally {
@@ -254,7 +213,7 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
                 <span className={`font-medium ${
                   transaction.type === 'income' ? 'text-success' : 'text-destructive'
                 }`}>
-                  {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                  {transaction.type === 'income' ? '+' : '-'} R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </TableCell>
               <TableCell>

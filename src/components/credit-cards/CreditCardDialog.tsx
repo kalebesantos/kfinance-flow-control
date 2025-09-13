@@ -19,9 +19,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { parseCurrency } from "@/utils/currency";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -78,7 +80,7 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess, editCard }: Cr
           .from('credit_cards')
           .update({
             name: values.name,
-            limit_total: parseFloat(values.limit_total.replace(',', '.')),
+            limit_total: parseCurrency(values.limit_total),
             closing_day: parseInt(values.closing_day),
             due_day: parseInt(values.due_day),
             updated_at: new Date().toISOString()
@@ -169,13 +171,11 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess, editCard }: Cr
               name="limit_total"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Limite Total (R$)</FormLabel>
+                  <FormLabel>Limite Total</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="0,00" 
-                      step="0.01"
-                      {...field} 
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
