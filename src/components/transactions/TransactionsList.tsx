@@ -54,35 +54,77 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
 
   const fetchTransactions = async () => {
     try {
-      let query = supabase
-        .from('transactions')
-        .select(`
-          id,
-          date,
-          description,
-          amount,
-          type,
-          payment_method,
-          status,
-          is_installment,
-          current_installment,
-          installment_count,
-          categories (name, color),
-          credit_cards (name)
-        `)
-        .order('date', { ascending: false });
+      setLoading(true);
+      
+      // TODO: Quando autenticação estiver implementada, descomentar o código abaixo
+      // let query = supabase
+      //   .from('transactions')
+      //   .select(`
+      //     id,
+      //     date,
+      //     description,
+      //     amount,
+      //     type,
+      //     payment_method,
+      //     status,
+      //     is_installment,
+      //     current_installment,
+      //     installment_count,
+      //     categories (name, color),
+      //     credit_cards (name)
+      //   `)
+      //   .order('date', { ascending: false });
 
-      if (limit) {
-        query = query.limit(limit);
-      }
+      // if (limit) {
+      //   query = query.limit(limit);
+      // }
 
-      const { data, error } = await query;
+      // const { data, error } = await query;
 
-      if (error) {
-        console.error('Erro ao buscar transações:', error);
-      } else {
-        setTransactions(data || []);
-      }
+      // if (error) {
+      //   console.error('Erro ao buscar transações:', error);
+      // } else {
+      //   const typedData = (data || []).map(item => ({
+      //     ...item,
+      //     type: item.type as 'income' | 'expense',
+      //     status: item.status as 'paid' | 'pending'
+      //   }));
+      //   setTransactions(typedData);
+      // }
+
+      // Por enquanto, usar dados mockados
+      const mockTransactions: Transaction[] = [
+        {
+          id: '1',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          description: 'Supermercado',
+          amount: 250.00,
+          type: 'expense',
+          payment_method: 'credit_card',
+          status: 'paid',
+          is_installment: false,
+          current_installment: 1,
+          installment_count: 1,
+          categories: { name: 'Alimentação', color: '#ef4444' },
+          credit_cards: { name: 'Cartão Exemplo' }
+        },
+        {
+          id: '2',
+          date: format(new Date(), 'yyyy-MM-dd'),
+          description: 'Salário',
+          amount: 5000.00,
+          type: 'income',
+          payment_method: 'transfer',
+          status: 'paid',
+          is_installment: false,
+          current_installment: 1,
+          installment_count: 1,
+          categories: { name: 'Salário', color: '#10b981' },
+          credit_cards: null
+        }
+      ];
+      
+      setTransactions(limit ? mockTransactions.slice(0, limit) : mockTransactions);
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
     } finally {
