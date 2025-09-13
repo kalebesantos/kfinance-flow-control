@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wallet, TrendingUp, TrendingDown, CreditCard, Calendar, Plus } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, CreditCard, Calendar, Plus, Tags } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { TransactionsList } from "@/components/transactions/TransactionsList";
 import { MonthlyReport } from "@/components/reports/MonthlyReport";
 import { CreditCardManager } from "@/components/credit-cards/CreditCardManager";
+import { CategoryManager } from "@/components/categories/CategoryManager";
 import { TransactionDialog } from "@/components/transactions/TransactionDialog";
 
 const Index = () => {
@@ -43,7 +44,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/50">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Dashboard
@@ -59,6 +60,10 @@ const Index = () => {
             <TabsTrigger value="cards" className="flex items-center gap-2">
               <CreditCard className="w-4 h-4" />
               Cartões
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex items-center gap-2">
+              <Tags className="w-4 h-4" />
+              Categorias
             </TabsTrigger>
           </TabsList>
 
@@ -103,6 +108,10 @@ const Index = () => {
 
           <TabsContent value="cards">
             <CreditCardManager />
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoryManager />
           </TabsContent>
         </Tabs>
       </main>

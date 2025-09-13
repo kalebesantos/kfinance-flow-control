@@ -141,14 +141,26 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
 
   const fetchCategories = async () => {
     try {
-      const { data } = await supabase
-        .from('categories')
-        .select('id, name, color')
-        .order('name');
+      // Por enquanto, usar categorias locais mockadas
+      // Quando a autenticação estiver implementada, buscará do banco
+      const mockCategories = [
+        // Categorias de despesa
+        { id: '1', name: 'Alimentação', color: '#ef4444' },
+        { id: '2', name: 'Transporte', color: '#f59e0b' },
+        { id: '3', name: 'Moradia', color: '#8b5cf6' },
+        { id: '4', name: 'Saúde', color: '#10b981' },
+        { id: '5', name: 'Educação', color: '#3b82f6' },
+        { id: '6', name: 'Lazer', color: '#ec4899' },
+        { id: '7', name: 'Compras', color: '#f97316' },
+        { id: '8', name: 'Outros', color: '#6b7280' },
+        // Categorias de receita  
+        { id: '9', name: 'Salário', color: '#10b981' },
+        { id: '10', name: 'Freelance', color: '#3b82f6' },
+        { id: '11', name: 'Investimentos', color: '#8b5cf6' },
+        { id: '12', name: 'Outros', color: '#6b7280' },
+      ];
       
-      if (data) {
-        setCategories(data);
-      }
+      setCategories(mockCategories);
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);
     }

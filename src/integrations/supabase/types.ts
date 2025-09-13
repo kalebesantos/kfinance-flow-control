@@ -84,13 +84,20 @@ export type Database = {
         Row: {
           amount: number
           categories: string[] | null
+          category_id: string | null
           created_at: string
           credit_card_id: string | null
           current_installment: number | null
           date: string
           description: string
+          due_date: string | null
           id: string
+          installment_count: number | null
           installments: number | null
+          is_installment: boolean | null
+          notes: string | null
+          payment_method: string | null
+          status: string | null
           type: string
           updated_at: string
           user_id: string
@@ -98,13 +105,20 @@ export type Database = {
         Insert: {
           amount: number
           categories?: string[] | null
+          category_id?: string | null
           created_at?: string
           credit_card_id?: string | null
           current_installment?: number | null
           date?: string
           description: string
+          due_date?: string | null
           id?: string
+          installment_count?: number | null
           installments?: number | null
+          is_installment?: boolean | null
+          notes?: string | null
+          payment_method?: string | null
+          status?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -112,18 +126,32 @@ export type Database = {
         Update: {
           amount?: number
           categories?: string[] | null
+          category_id?: string | null
           created_at?: string
           credit_card_id?: string | null
           current_installment?: number | null
           date?: string
           description?: string
+          due_date?: string | null
           id?: string
+          installment_count?: number | null
           installments?: number | null
+          is_installment?: boolean | null
+          notes?: string | null
+          payment_method?: string | null
+          status?: string | null
           type?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_credit_card_id_fkey"
             columns: ["credit_card_id"]
