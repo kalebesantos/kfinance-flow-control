@@ -7,152 +7,14 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      categories: {
-        Row: {
-          color: string | null
-          created_at: string | null
-          icon: string | null
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string | null
-          icon?: string | null
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          color?: string | null
-          created_at?: string | null
-          icon?: string | null
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      credit_cards: {
-        Row: {
-          closing_day: number | null
-          created_at: string | null
-          due_day: number | null
-          id: string
-          limit_total: number
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          closing_day?: number | null
-          created_at?: string | null
-          due_day?: number | null
-          id?: string
-          limit_total?: number
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          closing_day?: number | null
-          created_at?: string | null
-          due_day?: number | null
-          id?: string
-          limit_total?: number
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      transactions: {
-        Row: {
-          amount: number
-          category_id: string | null
-          created_at: string | null
-          credit_card_id: string | null
-          current_installment: number | null
-          date: string
-          description: string
-          due_date: string | null
-          id: string
-          installment_count: number | null
-          is_installment: boolean | null
-          notes: string | null
-          parent_transaction_id: string | null
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          status: Database["public"]["Enums"]["transaction_status"] | null
-          type: Database["public"]["Enums"]["transaction_type"]
-          updated_at: string | null
-        }
-        Insert: {
-          amount: number
-          category_id?: string | null
-          created_at?: string | null
-          credit_card_id?: string | null
-          current_installment?: number | null
-          date: string
-          description: string
-          due_date?: string | null
-          id?: string
-          installment_count?: number | null
-          is_installment?: boolean | null
-          notes?: string | null
-          parent_transaction_id?: string | null
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          status?: Database["public"]["Enums"]["transaction_status"] | null
-          type: Database["public"]["Enums"]["transaction_type"]
-          updated_at?: string | null
-        }
-        Update: {
-          amount?: number
-          category_id?: string | null
-          created_at?: string | null
-          credit_card_id?: string | null
-          current_installment?: number | null
-          date?: string
-          description?: string
-          due_date?: string | null
-          id?: string
-          installment_count?: number | null
-          is_installment?: boolean | null
-          notes?: string | null
-          parent_transaction_id?: string | null
-          payment_method?: Database["public"]["Enums"]["payment_method"]
-          status?: Database["public"]["Enums"]["transaction_status"] | null
-          type?: Database["public"]["Enums"]["transaction_type"]
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_credit_card_id_fkey"
-            columns: ["credit_card_id"]
-            isOneToOne: false
-            referencedRelation: "credit_cards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_parent_transaction_id_fkey"
-            columns: ["parent_transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
@@ -161,9 +23,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      payment_method: "cash" | "credit_card" | "debit_card" | "pix" | "transfer"
-      transaction_status: "paid" | "pending"
-      transaction_type: "income" | "expense"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -290,10 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      payment_method: ["cash", "credit_card", "debit_card", "pix", "transfer"],
-      transaction_status: ["paid", "pending"],
-      transaction_type: ["income", "expense"],
-    },
+    Enums: {},
   },
 } as const
