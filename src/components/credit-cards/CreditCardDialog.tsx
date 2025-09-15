@@ -93,32 +93,20 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess, editCard }: Cr
           description: "Cartão de crédito atualizado com sucesso.",
         });
       } else {
-        // TODO: Quando autenticação estiver implementada, descomentar o código abaixo
-        // const { data: { user } } = await supabase.auth.getUser();
-        // if (!user) {
-        //   throw new Error('Usuário não autenticado');
-        // }
-        
-        // const { error } = await supabase
-        //   .from('credit_cards')
-        //   .insert({
-        //     name: values.name,
-        //     limit_total: parseFloat(values.limit_total.replace(',', '.')),
-        //     closing_day: parseInt(values.closing_day),
-        //     due_day: parseInt(values.due_day),
-        //     user_id: user.id
-        //   });
+        const created = mockData.addCreditCard({
+          name: values.name,
+          limit_total: parseCurrency(values.limit_total),
+          closing_day: parseInt(values.closing_day),
+          due_day: parseInt(values.due_day),
+        });
 
-        // if (error) {
-        //   throw error;
-        // }
-
-        // Por enquanto, apenas simular sucesso
-        console.log('Cartão cadastrado localmente:', values);
+        if (!created) {
+          throw new Error('Não foi possível cadastrar o cartão.');
+        }
 
         toast({
           title: "Cartão cadastrado!",
-          description: "Cartão de crédito cadastrado com sucesso (localmente).",
+          description: "Cartão de crédito cadastrado com sucesso.",
         });
       }
 

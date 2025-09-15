@@ -6,13 +6,26 @@ export const formatCurrency = (value: number): string => {
 };
 
 export const parseCurrency = (value: string): number => {
-  // Remove R$, espaços e substitui vírgula por ponto
-  const cleanValue = value
-    .replace(/[R$\s]/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
-  
-  return parseFloat(cleanValue) || 0;
+  if (!value) return 0;
+  let clean = value.toString().trim();
+
+  // Remove símbolo e espaços
+  clean = clean.replace(/[R$\s]/g, '');
+
+  if (clean.includes(',')) {
+    // Padrão PT-BR: vírgula é decimal, pontos são milhar
+    clean = clean.replace(/\./g, '').replace(',', '.');
+  } else {
+    // Padrão EN: ponto é decimal (manter apenas o último ponto como decimal)
+    const parts = clean.split('.');
+    if (parts.length > 2) {
+      const decimal = parts.pop();
+      clean = parts.join('') + '.' + decimal;
+    }
+  }
+
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
 };
 
 export const formatInputCurrency = (value: string): string => {

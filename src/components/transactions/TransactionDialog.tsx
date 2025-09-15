@@ -33,7 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
@@ -187,9 +187,9 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
           is_installment: values.is_installment,
           installment_count: installmentCount,
           current_installment: editTransaction.current_installment || 1,
-          credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-          due_date: values.due_date || null,
-          notes: values.notes || null,
+          credit_card_id: values.payment_method === 'credit_card' && values.credit_card_id ? values.credit_card_id : undefined,
+          due_date: values.due_date || undefined,
+          notes: values.notes || undefined,
         });
 
         if (updated) {
@@ -218,9 +218,9 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
             is_installment: true,
             installment_count: installmentCount,
             current_installment: i + 1,
-            credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-            due_date: values.due_date || null,
-            notes: values.notes || null,
+            credit_card_id: values.payment_method === 'credit_card' && values.credit_card_id ? values.credit_card_id : undefined,
+            due_date: values.due_date || undefined,
+            notes: values.notes || undefined,
           });
         }
 
@@ -241,9 +241,9 @@ export const TransactionDialog = ({ open, onOpenChange, onSuccess, editTransacti
           is_installment: false,
           installment_count: 1,
           current_installment: 1,
-          credit_card_id: values.payment_method === 'credit_card' ? values.credit_card_id : null,
-          due_date: values.due_date || null,
-          notes: values.notes || null,
+          credit_card_id: values.payment_method === 'credit_card' && values.credit_card_id ? values.credit_card_id : undefined,
+          due_date: values.due_date || undefined,
+          notes: values.notes || undefined,
         });
 
         toast({
