@@ -121,12 +121,6 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
 
   const getPaymentMethodLabel = (method: string) => {
     const methods = {
@@ -212,7 +206,7 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
                 <span className={`font-medium ${
                   transaction.type === 'income' ? 'text-success' : 'text-destructive'
                 }`}>
-                  {transaction.type === 'income' ? '+' : '-'} R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
                 </span>
               </TableCell>
               <TableCell>
