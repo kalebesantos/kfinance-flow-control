@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+
 import { TransactionDialog } from "./TransactionDialog";
 import { useToast } from "@/hooks/use-toast";
 import { mockData } from "@/store/mockData";
@@ -97,12 +97,11 @@ export const TransactionsList = ({ limit }: TransactionsListProps) => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id);
+      const success = mockData.deleteTransaction(id);
 
-      if (error) throw error;
+      if (!success) {
+        throw new Error('Falha ao excluir a transação');
+      }
 
       toast({
         title: "Transação excluída",

@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { mockData } from "@/store/mockData";
 import { CreditCardDialog } from "./CreditCardDialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,39 +43,26 @@ export const CreditCardManager = () => {
 
   const fetchCreditCards = async () => {
     try {
-      // Buscar cartões
-      const { data: cards } = await supabase
-        .from('credit_cards')
-        .select('*')
-        .order('name');
+      // Buscar cartões do mock e calcular uso a partir das transações mockadas
+      const cards = mockData.getCreditCards();
+      const transactions = mockData.getTransactions();
 
-      if (cards) {
-        // Para cada cartão, calcular o valor utilizado
-        const cardsWithUsage = await Promise.all(
-          cards.map(async (card) => {
-            // Buscar transações do cartão de crédito
-            const { data: transactions } = await supabase
-              .from('transactions')
-              .select('amount')
-              .eq('credit_card_id', card.id)
-              .eq('payment_method', 'credit_card')
-              .eq('type', 'expense');
-
-            const usedAmount = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-            const availableAmount = Number(card.limit_total) - usedAmount;
-            
-            return {
-              ...card,
-              limit_total: Number(card.limit_total),
-              used_amount: usedAmount,
-              available_amount: availableAmount,
-              current_invoice: usedAmount // Simplificado - valor atual da fatura
-            };
-          })
+      const cardsWithUsage = cards.map((card) => {
+        const cardTransactions = transactions.filter(
+          (t) => t.credit_card_id === card.id && t.payment_method === 'credit_card' && t.type === 'expense'
         );
+        const usedAmount = cardTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+        const availableAmount = Number(card.limit_total) - usedAmount;
 
-        setCreditCards(cardsWithUsage);
-      }
+        return {
+          ...card,
+          used_amount: usedAmount,
+          available_amount: availableAmount,
+          current_invoice: usedAmount,
+        } as CreditCard;
+      });
+
+      setCreditCards(cardsWithUsage);
     } catch (error) {
       console.error('Erro ao buscar cartões:', error);
     } finally {
@@ -85,12 +72,13 @@ export const CreditCardManager = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('credit_cards')
-        .delete()
-        .eq('id', id);
+      const success = mockData.deleteCreditCard(id);
 
-      if (error) throw error;
+      if (!success) {
+        throw new Error('Falha ao excluir o cartão');
+      }
+
+      
 
       toast({
         title: "Cartão excluído",

@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { mockData } from "@/store/mockData";
 import { parseCurrency } from "@/utils/currency";
 
 const formSchema = z.object({
@@ -76,20 +76,17 @@ export const CreditCardDialog = ({ open, onOpenChange, onSuccess, editCard }: Cr
       setLoading(true);
 
       if (editCard) {
-        const { error } = await supabase
-          .from('credit_cards')
-          .update({
-            name: values.name,
-            limit_total: parseCurrency(values.limit_total),
-            closing_day: parseInt(values.closing_day),
-            due_day: parseInt(values.due_day),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editCard.id);
+        const updated = mockData.updateCreditCard(editCard.id, {
+          name: values.name,
+          limit_total: parseCurrency(values.limit_total),
+          closing_day: parseInt(values.closing_day),
+          due_day: parseInt(values.due_day),
+        });
 
-        if (error) {
-          throw error;
+        if (!updated) {
+          throw new Error('Não foi possível atualizar o cartão.');
         }
+
 
         toast({
           title: "Cartão atualizado!",
